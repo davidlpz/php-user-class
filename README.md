@@ -1,4 +1,4 @@
-php-user-class
+PHP User class
 ==============
 
-An object-oriented PHP &amp; MySQL user class to login, register and change the password.
+An object-oriented PHP & MySQL user class to login, register and change the password.
