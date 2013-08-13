@@ -17,6 +17,8 @@ class User{
 
 		$this->db = $db;
 
+		$this->update_messages();
+
 		if (isset($_GET['logout'])) {
 
 			$this->logout();
@@ -26,7 +28,7 @@ class User{
 			$this->is_logged = true;
 			$this->username = $_SESSION['username'];
 			$this->email = $_SESSION['email'];
-			
+
 			if (isset($_POST['update'])) {
 
 				$this->update($this->username);
@@ -40,8 +42,12 @@ class User{
 		} elseif (isset($_POST['login'])) {
 
 			$this->login();
-			
-		}
+
+		} elseif ($this->empty_db() && isset($_POST['register'])) {
+
+			$this->register();
+
+		} else if (!$this->db_exists()) $this->create_db();
 
 		return $this;
 	}
@@ -50,7 +56,7 @@ class User{
 
 	public function get_username() { return $this->username; }
 
-	// Get email 
+	// Get email
 
 	public function get_email() { return $this->email; }
 
@@ -66,15 +72,28 @@ class User{
 
 	public function get_error() { return $this->error; }
 
+	// Copy error & info messages from $_SESSION to the user object
+
+	private function update_messages() {
+		if (isset($_SESSION['msg']) && $_SESSION['msg'] != '') {
+			$this->msg = array_merge($this->msg, $_SESSION['msg']);
+			$_SESSION['msg'] = '';
+		}
+		if (isset($_SESSION['error']) && $_SESSION['error'] != '') {
+			$this->error = array_merge($this->error, $_SESSION['error']);
+			$_SESSION['error'] = '';
+		}
+	}
+
 	// Login
 
 	public function login() {
 
 		if (!empty($_POST['username']) && !empty($_POST['password'])) {
-			
+
 			$this->username = $this->db->real_escape_string($_POST['username']);
 			$this->password = sha1($this->db->real_escape_string($_POST['password']));
-			
+
 			if ($row = $this->verify_password()) {
 
 				session_regenerate_id(true);
@@ -85,7 +104,7 @@ class User{
 				$this->is_logged = true;
 				// Set a cookie that expires in one week
 				if (isset($_POST['remember']))
-					setcookie('username', $this->username, time() + 604800);	
+					setcookie('username', $this->username, time() + 604800);
 				// To avoid resending the form on refreshing
 				header('Location: ' . $_SERVER['REQUEST_URI']);
 				exit();
@@ -136,6 +155,7 @@ class User{
 
 			if ($_POST['password'] == $_POST['confirm']) {
 
+				$first_user = $this->empty_db();
 				$username = $this->db->real_escape_string($_POST['username']);
 				$password = sha1($this->db->real_escape_string($_POST['password']));
 				$email = $this->db->real_escape_string($_POST['email']);
@@ -145,15 +165,24 @@ class User{
 
 				if ($this->db->query($query)) {
 
-					$this->msg[] = 'User created.';
+					if ($first_user) {
+						session_regenerate_id(true);
+						$_SESSION['id'] = session_id();
+						$_SESSION['username'] = $username;
+						$_SESSION['email'] = $email;
+						$_SESSION['is_logged'] = true;
+						$this->is_logged = true;
+					} else {
+						$this->msg[] = 'User created.';
+						$_SESSION['msg'] = $this->msg;
+					}
 					// To avoid resending the form on refreshing
-					$_SESSION['msg'] = $this->msg;
 					header('Location: ' . $_SERVER['REQUEST_URI']);
 					exit();
 
 				} else $this->error[] = 'Username already exists.';
 
-			} else $this->error[] = 'Password doesn\'t match.';
+			} else $this->error[] = 'Passwords don\'t match.';
 
 		} elseif (empty($_POST['username'])) {
 
@@ -162,7 +191,7 @@ class User{
 		} elseif (empty($_POST['password'])) {
 
 			$this->error[] = 'Password field was empty.';
-		
+
 		} elseif (empty($_POST['confirm'])) {
 
 			$this->error[] = 'You need to confirm the password.';
@@ -192,7 +221,7 @@ class User{
 			if ($_POST['newpassword1'] == $_POST['newpassword2']) {
 
 				$this->password = sha1($this->db->real_escape_string($_POST['password']));
-				
+
 				if ($this->verify_password()) {
 
 					$this->password = sha1($this->db->real_escape_string($_POST['newpassword1']));
@@ -206,16 +235,16 @@ class User{
 
 				} else $this->error[] = 'Wrong password.';
 
-			} else $this->error[] = 'Password doesn\'t match.';
+			} else $this->error[] = 'Passwords don\'t match.';
 
 		} elseif (empty($_POST['password']) && (!empty($_POST['newpassword1']) || !empty($_POST['newpassword2']))) {
 
 			$this->error[] = 'Old password field was empty.';
-		
+
 		} elseif (!empty($_POST['password']) && empty($_POST['newpassword1'])) {
 
 			$this->error[] = 'New password field was empty.';
-		
+
 		} elseif (!empty($_POST['password']) && empty($_POST['newpassword2'])) {
 
 			$this->error[] = 'You must enter the new password again.';
@@ -226,7 +255,7 @@ class User{
 		$_SESSION['error'] = $this->error;
 		header('Location: ' . $_SERVER['REQUEST_URI']);
 		exit();
-	
+
 	}
 
 	// Delete an existing user
@@ -241,7 +270,7 @@ class User{
 	public function get_user_info($user) {
 		$query = 'SELECT user, password, email FROM users WHERE user = "' . $user . '"';
 		$result = $this->db->query($query);
-		return $result->fetch_object();	
+		return $result->fetch_object();
 	}
 
 	// Get all the existing users
@@ -249,7 +278,7 @@ class User{
 	public function get_users() {
 
 		$query = 'SELECT user, password, email FROM users';
-		
+
 		return ($this->db->query($query));
 	}
 
@@ -269,7 +298,21 @@ class User{
 		}
 	}
 
-	// Create a new  db to start with
+	// Check if the users db has been created
+
+	public function db_exists() {
+		return ($this->db->query('SELECT 1 FROM users'));
+	}
+
+	// Check if the users db has any users
+
+	public function empty_db() {
+		$query = 'SELECT * FROM users';
+		$result = $this->db->query($query);
+		return ($result->num_rows === 0);
+	}
+
+	// Create a new db to start with
 
 	private function create_db() {
 
@@ -283,7 +326,7 @@ class User{
 		return ($this->db->query($query));
 
 	}
-	
+
 	// Drop an existing db
 
 	private function drop_db() {
@@ -292,6 +335,6 @@ class User{
 
 	}
 
-} 
+}
 
 ?>

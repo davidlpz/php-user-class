@@ -25,9 +25,13 @@ $user = new User($db);
 
 <?php
 
-	if (!$user->is_logged()) { 
+	if (!$user->is_logged()) {
 
-		include('login.php');
+		if ($user->empty_db()) {
+
+			include('user-register.php');
+
+		} else include('login.php');
 
 		include('footer.php');
 

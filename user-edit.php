@@ -1,4 +1,4 @@
-<form class="user" method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>">
+<form class="user" method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>" autocomplete="off">
 	<?php $user->display_info(); ?>
 	<?php $user->display_errors(); ?>
 	<input type="hidden" name="old_email" <?php echo 'value="' . $user->get_email() . '"'; ?> />

@@ -18,7 +18,7 @@
 }
 
 
-/* Main 
+/* Main
 ---------------------------------------------------- */
 
 body{
@@ -57,12 +57,11 @@ body{
 	color:red;
 }
 
-/* Menu 
+/* Menu
 ---------------------------------------------------- */
 
 nav{
 	text-align:center;
-	margin-bottom:75px;
 	border-bottom: 1px solid #dfdfdf;
 }
 ul{
@@ -86,7 +85,7 @@ nav li a:hover{
 }
 
 
-/* Archive 
+/* Archive
 ---------------------------------------------------- */
 
 table{
@@ -125,7 +124,7 @@ th, td{
 	width:45px;
 }
 
-/* Form 
+/* Form
 ---------------------------------------------------- */
 
 #login{
@@ -227,7 +226,11 @@ input[type="submit"]:active{
 	background-image:linear-gradient(bottom, #7588e1 0%, #7184df 100%);
 }
 
+
+.install{
+	margin-top:250px;
+}
 .user{
 	width:25%;
-	margin:0 auto 100px;
+	margin:150px auto 0;
 }
